@@ -19,9 +19,12 @@ module testbench (
 
 	(* keep *) wire        iBus_cmd_valid;
 	(* keep *) wire [31:0] iBus_cmd_payload_pc;
-	(* keep *) `rvformal_rand_reg iBus_cmd_ready;
-	(* keep *) `rvformal_rand_reg iBus_rsp_ready;
-	(* keep *) `rvformal_rand_reg [31:0] iBus_rsp_inst;
+	(* keep *) wire iBus_cmd_ready;
+	(* keep *) `rvformal_rand_reg iBus_cmd_ready_rand;
+	(* keep *) wire iBus_rsp_valid;
+	(* keep *) `rvformal_rand_reg iBus_rsp_valid_rand;
+	(* keep *) reg [31:0] iBus_rsp_payload_inst;
+	(* keep *) `rvformal_rand_reg [31:0] iBus_rsp_payload_inst_rand;
 
 
 	(* keep *) wire  dBus_cmd_valid;
@@ -49,25 +52,45 @@ module testbench (
 		`RVFI_CONN
 	);
 
-	(* keep *) wire imem_last_valid;
-	(* keep *) wire [31:0] imem_last_addr;
+
+       (* keep *) reg [2:0] iBusCmdPtr = 0;
+       (* keep *) reg [2:0] iBusRspPtr = 0;
+       (* keep *) reg [31:0]iBusRspAddr[8];
+
+
+
+	assign iBus_cmd_ready = iBus_cmd_ready_rand && ((iBusCmdPtr + 1) & 7 != iBusRspPtr);
+	assign iBus_rsp_valid = iBus_rsp_valid_rand && (iBusCmdPtr != iBusRspPtr);
+
+	always @(*) begin
+		iBus_rsp_payload_inst <= iBus_rsp_payload_inst_rand;
+		if(iBus_rsp_valid) begin
+			if (iBusRspAddr[iBusRspPtr] == imem_addr)
+				assume(iBus_rsp_payload_inst[15:0] == imem_data);
+			if (iBusRspAddr[iBusRspPtr] + 2 == imem_addr)
+				assume(iBus_rsp_payload_inst[31:16] == imem_data);
+		end
+	end	
 
 	always @(posedge clk) begin
 		if (reset) begin
-			imem_last_valid <= 0;
+			iBusCmdPtr <= 0;
+			iBusRspPtr <= 0;
+			iBusRspAddr[0] <= 0;
+			iBusRspAddr[1] <= 0;
+			iBusRspAddr[2] <= 0;
+			iBusRspAddr[3] <= 0;
+			iBusRspAddr[4] <= 0;
+			iBusRspAddr[5] <= 0;
+			iBusRspAddr[6] <= 0;
+			iBusRspAddr[7] <= 0;
 		end else begin
-			if(imem_last_valid) begin
-				if (imem_last_addr == imem_addr)
-					assume(iBus_rsp_inst[15:0] == imem_data);
-				if (imem_last_addr+2 == imem_addr)
-					assume(iBus_rsp_inst[31:16] == imem_data);
-			end
-			if(iBus_rsp_ready) begin
-				imem_last_valid <= 0;
+			if(iBus_rsp_valid) begin
+				iBusRspPtr <= iBusRspPtr + 1;
 			end
 			if(iBus_cmd_valid && iBus_cmd_ready) begin
-				imem_last_valid <= 1;
-				imem_last_addr <= iBus_cmd_payload_pc;
+				iBusRspAddr[iBusCmdPtr] <= iBus_cmd_payload_pc;
+				iBusCmdPtr <= iBusCmdPtr + 1;
 			end
 		end
 		
@@ -84,9 +107,9 @@ module testbench (
 		.iBus_cmd_valid (iBus_cmd_valid),
 		.iBus_cmd_ready (iBus_cmd_ready),
 		.iBus_cmd_payload_pc  (iBus_cmd_payload_pc ),
-		.iBus_rsp_ready(iBus_rsp_ready),
-		.iBus_rsp_inst (iBus_rsp_inst),
-		.iBus_rsp_error(1'b0),
+		.iBus_rsp_valid(iBus_rsp_valid),
+		.iBus_rsp_payload_inst (iBus_rsp_payload_inst),
+		.iBus_rsp_payload_error(1'b0),
 
 		.dBus_cmd_valid(dBus_cmd_valid),
 		.dBus_cmd_payload_wr(dBus_cmd_payload_wr),

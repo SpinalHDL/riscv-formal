@@ -34,6 +34,7 @@ with open("disasm.s", "w") as f:
         else:
             print(".word 0x%08x # %d" % (tv_insn, tv_order), file=f)
 
+
 system("riscv64-unknown-elf-gcc -c disasm.s")
 system("riscv64-unknown-elf-objdump -d -M numeric,no-aliases disasm.o")
 

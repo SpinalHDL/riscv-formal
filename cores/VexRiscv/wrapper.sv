@@ -9,8 +9,9 @@ module rvfi_wrapper (
 	(* keep *) wire        iBus_cmd_valid;
 	(* keep *) wire [31:0] iBus_cmd_payload_pc;
 	(* keep *) `rvformal_rand_reg iBus_cmd_ready;
-	(* keep *) `rvformal_rand_reg iBus_rsp_ready;
-	(* keep *) `rvformal_rand_reg [31:0] iBus_rsp_inst;
+	(* keep *) wire iBus_rsp_valid;
+	(* keep *) `rvformal_rand_reg iBus_rsp_valid_rand;
+	(* keep *) `rvformal_rand_reg [31:0] iBus_rsp_payload_inst;
 
 
 	(* keep *) wire  dBus_cmd_valid;
@@ -32,9 +33,9 @@ module rvfi_wrapper (
 		.iBus_cmd_valid (iBus_cmd_valid),
 		.iBus_cmd_ready (iBus_cmd_ready),
 		.iBus_cmd_payload_pc  (iBus_cmd_payload_pc ),
-		.iBus_rsp_ready(iBus_rsp_ready),
-		.iBus_rsp_inst (iBus_rsp_inst),
-		.iBus_rsp_error(1'b0),
+		.iBus_rsp_valid(iBus_rsp_valid),
+		.iBus_rsp_payload_inst (iBus_rsp_payload_inst),
+		.iBus_rsp_payload_error(1'b0),
 
 		.dBus_cmd_valid(dBus_cmd_valid),
 		.dBus_cmd_payload_wr(dBus_cmd_payload_wr),
@@ -48,6 +49,13 @@ module rvfi_wrapper (
 
 		`RVFI_CONN
 	);
+
+ 	(* keep *) reg [2:0] iBusCmdPendings = 0;
+  	always @(posedge clock) begin
+		iBusCmdPendings <= iBusCmdPendings + (iBus_cmd_valid && iBus_cmd_ready) - iBus_rsp_valid;
+   	end
+
+	assign iBus_rsp_valid = iBus_rsp_valid_rand && iBusCmdPendings != 0;
 
 `ifdef VEXRISCV_FAIRNESS
 	(* keep *) reg [2:0] iBusCmdPendingCycles = 0;
@@ -66,7 +74,7 @@ module rvfi_wrapper (
 		if(iBusRspPendingValid <= 1) begin
 			iBusRspPendingCycles <= iBusRspPendingCycles + 1;
 		end
-		if(iBus_rsp_ready) begin
+		if(iBus_rsp_valid) begin
 			iBusRspPendingValid <= 0;
 			iBusRspPendingCycles <= 0;
 		end
