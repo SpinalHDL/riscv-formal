@@ -37,9 +37,9 @@ module rvfi_insn_blt (
   assign spec_rs2_addr = insn_rs2;
   assign spec_pc_wdata = next_pc;
 `ifdef RISCV_FORMAL_COMPRESSED
-  assign spec_trap = next_pc[0] != 0;
+  assign spec_trap = insn_imm[0] != 0;
 `else
-  assign spec_trap = next_pc[1:0] != 0;
+  assign spec_trap = insn_imm[1:0] != 0;
 `endif
 
   // default assignments

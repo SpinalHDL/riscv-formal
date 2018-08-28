@@ -98,7 +98,7 @@ module rvfi_wrapper (
 		if(dBus_cmd_valid && dBus_cmd_ready && !dBus_cmd_payload_wr) begin
 			dBusRspPendingValid <= 1;
 		end
-		restrict(~rvfi_trap && dBusCmdPendingCycles < 4 && dBusRspPendingCycles < 4 && iBusCmdPendingCycles < 4 && iBusRspPendingCycles < 4);
+		restrict(~rvfi_trap && dBusCmdPendingCycles < 3 && dBusRspPendingCycles < 3 && iBusCmdPendingCycles < 3 && iBusRspPendingCycles < 3);
 	end
 `endif
 endmodule
